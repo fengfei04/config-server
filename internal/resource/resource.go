@@ -17,7 +17,9 @@ type Resource struct {
 }
 
 type ResourceList struct {
-	items []Resource
+	Kind      string `json:"kind"`
+	Namespace string `json:"namespace"`
+	Items     []Resource
 }
 
 func (r *Resource) Create(namespace, kind string, body io.Reader) error {
@@ -70,8 +72,23 @@ func (r *Resource) Delete(namespace, kind, name string) error {
 	return r.delete()
 }
 
-func (rl *ResourceList) Get() {
-
+func (rl *ResourceList) Get(namespace, kind string, limit int) error {
+	rl.Namespace, rl.Kind = namespace, kind
+	prefix := fmt.Sprintf("/%s/%s/", namespace, kind)
+	kvs, err := etcd3.GetKVWithPrefix(prefix, int64(limit))
+	if err != nil {
+		return err
+	}
+	rl.Items = []Resource{}
+	for _, v := range kvs {
+		r := Resource{}
+		err = json.Unmarshal(v, &r)
+		if err != nil {
+			return nil
+		}
+		rl.Items = append(rl.Items, r)
+	}
+	return nil
 }
 
 func (r *Resource) validateParams(params ...string) error {

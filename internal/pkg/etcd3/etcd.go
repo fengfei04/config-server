@@ -56,6 +56,19 @@ func GetKV(key string) ([]byte, error) {
 	return resp.Kvs[0].Value, nil
 }
 
+func GetKVWithPrefix(prefix string, limit int64) (map[string][]byte, error) {
+	kv := clientv3.NewKV(client)
+	resp, err := kv.Get(context.TODO(), prefix, clientv3.WithPrefix(), clientv3.WithLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	kvs := map[string][]byte{}
+	for _, ev := range resp.Kvs {
+		kvs[string(ev.Key)] = ev.Value
+	}
+	return kvs, nil
+}
+
 func DelKV(key string) error {
 	kv := clientv3.NewKV(client)
 	if _, err := kv.Delete(context.TODO(), key, clientv3.WithPrevKV()); err != nil {
